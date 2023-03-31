@@ -22,7 +22,8 @@ How to use this
 Compile by typing 'make' into the terminal screen.
 $ make filter
 
-Then, you can run the program like:    
+
+Then, you can run the program like:
 $ ./bmpfilter -g in.bmp out.bmp
 $ ./bmpfilter -r in.bmp out.bmp
 $ ./bmpfilter -b in.bmp out.bmp
