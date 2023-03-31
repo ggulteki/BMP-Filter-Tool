@@ -20,9 +20,10 @@ For more detailed information about the Sobel Operator, please visit: https://en
 How to use this
 
 Compile by typing 'make' into the terminal screen.
-    $ make filter
+$ make filter
+
 Then, you can run the program like:    
-    $ ./bmpfilter -g in.bmp out.bmp
-    $ ./bmpfilter -r in.bmp out.bmp
-    $ ./bmpfilter -b in.bmp out.bmp
-    $ ./bmpfilter -e in.bmp out.bmp
+$ ./bmpfilter -g in.bmp out.bmp
+$ ./bmpfilter -r in.bmp out.bmp
+$ ./bmpfilter -b in.bmp out.bmp
+$ ./bmpfilter -e in.bmp out.bmp
