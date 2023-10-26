@@ -52,53 +52,56 @@ You can choose from four different filters:
 
 1. Using Grayscale:
 
-    Before;
+    - Before
     
     [Default](img/default.bmp)
 
     ```sh
     ./bmpfilter -g img/default.bmp img/grayscale.bmp
+    ```
 
-    After;
+    - After
 
     [Greyscale](img/grayscale.bmp)
 
 2. Using Reflection:
 
-    Before;
+    - Before
     
     [Default](img/default.bmp)
 
     ```sh
     ./bmpfilter -r img/default.bmp img/reflection.bmp
+    ```
 
-    After;
+    - After
 
     [Reflection](img/reflection.bmp)
 
 3. Using Blur:
-
-    Before;
+    - Before
     
     [Default](img/default.bmp)
 
     ```sh
     ./bmpfilter -b img/default.bmp img/blur.bmp
-
-    After;
+    ```
+    
+    - After
 
     [Blur](img/blur.bmp)
 
 4. Using Edges:
 
-    Before;
+    - Before
     
     [Default](img/default.bmp)
 
     ```sh
     ./bmpfilter -e img/default.bmp img/edges.bmp
+    ```
 
-    After;
+    - After
 
     [Edges](img/edges.bmp)
 
