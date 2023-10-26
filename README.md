@@ -50,9 +50,9 @@ You can choose from four different filters:
 
 ## Example
 
-1. Using Grayscale:
+### Using Grayscale:
 
-    - Before
+#### Before
     
     ![Default](img/default.bmp)
 
@@ -60,13 +60,13 @@ You can choose from four different filters:
     ./bmpfilter -g img/default.bmp img/grayscale.bmp
     ```
 
-    - After
+#### After
 
     ![Greyscale](img/grayscale.bmp)
 
-2. Using Reflection:
+### Using Reflection:
 
-    - Before
+#### Before
     
     ![Default](img/default.bmp)
 
@@ -74,12 +74,13 @@ You can choose from four different filters:
     ./bmpfilter -r img/default.bmp img/reflection.bmp
     ```
 
-    - After
+#### After
 
     ![Reflection](img/reflection.bmp)
 
-3. Using Blur:
-    - Before
+### Using Blur:
+    
+#### Before
     
     ![Default](img/default.bmp)
 
@@ -87,13 +88,13 @@ You can choose from four different filters:
     ./bmpfilter -b img/default.bmp img/blur.bmp
     ```
     
-    - After
+#### After
 
     ![Blur](img/blur.bmp)
 
-4. Using Edges:
+### Using Edges:
 
-    - Before
+ #### Before
     
     ![Default](img/default.bmp)
 
@@ -101,7 +102,7 @@ You can choose from four different filters:
     ./bmpfilter -e img/default.bmp img/edges.bmp
     ```
 
-    - After
+#### After
 
     ![Edges](img/edges.bmp)
 
