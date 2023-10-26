@@ -50,61 +50,61 @@ You can choose from four different filters:
 
 ## Example
 
-### Using Grayscale:
+### Using Grayscale
 
-#### Before
+- Before
+
+![Default](img/default.bmp)
+
+```sh
+./bmpfilter -g img/default.bmp img/grayscale.bmp
+```
+
+- After
     
-    ![Default](img/default.bmp)
-
-    ```sh
-    ./bmpfilter -g img/default.bmp img/grayscale.bmp
-    ```
-
-#### After
-
-    ![Greyscale](img/grayscale.bmp)
+![Greyscale](img/grayscale.bmp)
 
 ### Using Reflection:
 
-#### Before
+- Before
     
-    ![Default](img/default.bmp)
+![Default](img/default.bmp)
 
-    ```sh
-    ./bmpfilter -r img/default.bmp img/reflection.bmp
-    ```
+```sh
+./bmpfilter -r img/default.bmp img/reflection.bmp
+```
 
-#### After
+- After
 
-    ![Reflection](img/reflection.bmp)
+![Reflection](img/reflection.bmp)
 
 ### Using Blur:
     
-#### Before
+- Before
     
-    ![Default](img/default.bmp)
+![Default](img/default.bmp)
 
-    ```sh
-    ./bmpfilter -b img/default.bmp img/blur.bmp
-    ```
+```sh
+./bmpfilter -b img/default.bmp img/blur.bmp
+```
     
-#### After
+- After
 
-    ![Blur](img/blur.bmp)
+![Blur](img/blur.bmp)
 
 ### Using Edges:
 
- #### Before
+ - Before
     
-    ![Default](img/default.bmp)
+![Default](img/default.bmp)
 
-    ```sh
-    ./bmpfilter -e img/default.bmp img/edges.bmp
-    ```
+```sh
+./bmpfilter -e img/default.bmp img/edges.bmp
+```
 
-#### After
+- After
 
-    ![Edges](img/edges.bmp)
+![Edges](img/edges.bmp)
 
 ## Licence 
 
