@@ -1,30 +1,109 @@
-# simple-filters-to-BMPs-tool
+# BMP-Filter-Tool
 
-This is the implementation of a program that applies filters to BMP.
+**bmpfilter** is a command-line tool for applying various filters to BMP images like **Grayscale**, **Reflection**, **Blur** and **Edge Detection**.
 
-This program applies the following four simple visual effects to BMP files:
+## Table of Contents
 
-Grayscale -g
-This filter turns the given image into black and white.
+- [Introduction](#introduction)
+- [How to Use](#how-to-use)
+- [Example](#example)
+- [License](#license)
 
-Reflection -r
-This filter converts the given image into its reflection in the mirror.
+## Introduction
 
-Blur -b
-This filter blurs the given image.
+This program allows you to process BMP image files with various filters, offering visual effects to your images. You can easily apply the filters by running the tool from the command line.
 
-Edges -e
-This filter brings out the edges of the objects in the given image using the Sobel operator.
-For more detailed information about the Sobel Operator, please visit: https://en.wikipedia.org/wiki/Sobel_operator
+You can choose from four different filters:
 
-How to use this
+- Grayscale (-g): Converts the image to black and white.
+- Reflection (-r): Creates a mirror reflection of the image.
+- Blur (-b): Blurs the image using a simple technique.
+- Edges (-e): Enhances the edges in the image using the Sobel operator. For more detailed information about the Sobel Operator, please visit: https://en.wikipedia.org/wiki/Sobel_operator
 
-Compile by typing 'make' into the terminal screen.
-$ make filter
+## How to Use
 
+1. Clone the repository to your local machine:
+    ```sh
+    git clone https://github.com/ggulteki/BMP-Filter-Tool.git
 
-Then, you can run the program like:
-$ ./bmpfilter -g in.bmp out.bmp
-$ ./bmpfilter -r in.bmp out.bmp
-$ ./bmpfilter -b in.bmp out.bmp
-$ ./bmpfilter -e in.bmp out.bmp
+2. Compile the source code to build the bmpfilter program:
+    
+    ```sh
+    make
+
+3. Look at the [Example](#example) section for how to use this program.
+
+4. If you want to remove object files and intermediate build artifacts, use the following command:
+    
+    ```sh
+    make clean
+  
+5. To remove all build artifacts, including the binary:
+    
+    ```sh
+    make fclean
+
+6. To rebuild the bmpfilter program from scratch, use:
+    
+    ```sh
+    make re
+
+## Example
+
+1. Using Grayscale:
+
+    Before;
+    
+    [Default](img/default.bmp)
+
+    ```sh
+    ./bmpfilter -g img/default.bmp img/grayscale.bmp
+
+    After;
+
+    [Greyscale](img/grayscale.bmp)
+
+2. Using Reflection:
+
+    Before;
+    
+    [Default](img/default.bmp)
+
+    ```sh
+    ./bmpfilter -r img/default.bmp img/reflection.bmp
+
+    After;
+
+    [Reflection](img/reflection.bmp)
+
+3. Using Blur:
+
+    Before;
+    
+    [Default](img/default.bmp)
+
+    ```sh
+    ./bmpfilter -b img/default.bmp img/blur.bmp
+
+    After;
+
+    [Blur](img/blur.bmp)
+
+4. Using Edges:
+
+    Before;
+    
+    [Default](img/default.bmp)
+
+    ```sh
+    ./bmpfilter -e img/default.bmp img/edges.bmp
+
+    After;
+
+    [Edges](img/edges.bmp)
+
+## Licence 
+
+This project is open source and distributed under the GNU General Public License version 3.0 (GPL-3.0).
+
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)

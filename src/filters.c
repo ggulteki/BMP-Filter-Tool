@@ -1,7 +1,15 @@
-#include "ft_libfilter.h"
-#include <math.h>
-#include <stdio.h>
+/*  .------------------------------------.  */
+/*  |                   _ _       _    _ |  */
+/*  |  __ _  __ _ _   _| | |_ ___| | _(_)|  */
+/*  | / _` |/ _` | | | | | __/ _ \ |/ / ||  */
+/*  || (_| | (_| | |_| | | ||  __/   <| ||  */
+/*  | \__, |\__, |\__,_|_|\__\___|_|\_\_||  */
+/*  | |___/ |___/                        |  */
+/*  '------------------------------------'  */
+
+#include "filters.h"
 // Convert image to grayscale
+
 void grayscale(int height, int width, RGBTRIPLE image[height][width])
 {
     for (int i = 0; i < height; i++)
@@ -16,58 +24,75 @@ void grayscale(int height, int width, RGBTRIPLE image[height][width])
             image[i][j].rgbtRed = a;
         }
     }
-    return;
 }
 
 // Reflect image horizontally
+
 void reflect(int height, int width, RGBTRIPLE image[height][width])
 {
+    RGBTRIPLE(*temp)[width] = calloc(height, width * sizeof(RGBTRIPLE));
+    if (temp == NULL)
+    {
+        exit(1);
+    }
+
     for (int i = 0; i < height; i++)
     {
         if (width % 2 == 0)
         {
-            for (int j = 0; j < width / 2.0; j++)
+            for (int j = 0; j < width / 2; j++)
             {
-                // So any pixels on the left side of the image should end up on the right, and vice versa.
-                RGBTRIPLE temp[height][width];
+                // Copy the image data to temp
                 temp[i][j] = image[i][j];
-                image[i][j] = image[i][(width - 1) - j];
-                image[i][(width - 1) - j] = temp[i][j];
+                image[i][j] = image[i][width - 1 - j];
+                image[i][width - 1 - j] = temp[i][j];
             }
         }
         else
         {
-            for (int j = 0; j < (width / 2.0) - 1; j++)
+            for (int j = 0; j < width / 2; j++)
             {
-                RGBTRIPLE temp[height][width];
+                // Copy the image data to temp
                 temp[i][j] = image[i][j];
-                image[i][j] = image[i][(width - 1) - j];
-                image[i][(width - 1) - j] = temp[i][j];
+                image[i][j] = image[i][width - 1 - j];
+                image[i][width - 1 - j] = temp[i][j];
             }
         }
     }
-    return;
+
+    free(temp);
 }
 
 // Blur image
+
 void blur(int height, int width, RGBTRIPLE image[height][width])
 {
-    RGBTRIPLE temp[height][width];
+    RGBTRIPLE(*temp)[width] = calloc(height, width * sizeof(RGBTRIPLE));
+    if (temp == NULL)
+    {
+        exit(1);
+    }
 
     for (int i = 0; i < height; i++)
     {
         for (int j = 0; j < width; j++)
         {
             // There are a number of ways to create the effect of blurring or softening an image.
-            // For this problem, we’ll use the “box blur,” which works by taking each pixel and, for each color value, giving it a new value by averaging the color values of neighboring pixels.
+            // For this problem, we’ll use the “box blur,” which works by taking each pixel and, for each color value, giving it a
+            // new value by averaging the color values of neighboring pixels.
             if (i == 0)
             {
                 if (j == 0)
                 {
-                    int a = round((image[i][j].rgbtRed + image[i][j + 1].rgbtRed + image[i + 1][j].rgbtRed + image[i + 1][j + 1].rgbtRed) / 4.0);
-                    int b = round((image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen + image[i + 1][j].rgbtGreen + image[i + 1][j + 1].rgbtGreen) /
+                    int a = round(
+                        (image[i][j].rgbtRed + image[i][j + 1].rgbtRed + image[i + 1][j].rgbtRed + image[i + 1][j + 1].rgbtRed) /
+                        4.0);
+                    int b = round((image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen + image[i + 1][j].rgbtGreen +
+                                   image[i + 1][j + 1].rgbtGreen) /
                                   4.0);
-                    int c = round((image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue + image[i + 1][j].rgbtBlue + image[i + 1][j + 1].rgbtBlue) / 4.0);
+                    int c = round((image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue + image[i + 1][j].rgbtBlue +
+                                   image[i + 1][j + 1].rgbtBlue) /
+                                  4.0);
 
                     temp[i][j].rgbtBlue = c;
                     temp[i][j].rgbtGreen = b;
@@ -75,12 +100,15 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if ((0 < j) && (j < (width - 1)))
                 {
-                    int a = round((image[i][j - 1].rgbtRed + image[i][j].rgbtRed + image[i][j + 1].rgbtRed + image[i + 1][j - 1].rgbtRed + image[i +
-                                   1][j].rgbtRed + image[i + 1][j + 1].rgbtRed) / 6.0);
-                    int b = round((image[i][j - 1].rgbtGreen + image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen + image[i + 1][j - 1].rgbtGreen +
-                                   image[i + 1][j].rgbtGreen + image[i + 1][j + 1].rgbtGreen) / 6.0);
-                    int c = round((image[i][j - 1].rgbtBlue + image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue + image[i + 1][j - 1].rgbtBlue + image[i +
-                                   1][j].rgbtBlue + image[i + 1][j + 1].rgbtBlue) / 6.0);
+                    int a = round((image[i][j - 1].rgbtRed + image[i][j].rgbtRed + image[i][j + 1].rgbtRed +
+                                   image[i + 1][j - 1].rgbtRed + image[i + 1][j].rgbtRed + image[i + 1][j + 1].rgbtRed) /
+                                  6.0);
+                    int b = round((image[i][j - 1].rgbtGreen + image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen +
+                                   image[i + 1][j - 1].rgbtGreen + image[i + 1][j].rgbtGreen + image[i + 1][j + 1].rgbtGreen) /
+                                  6.0);
+                    int c = round((image[i][j - 1].rgbtBlue + image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue +
+                                   image[i + 1][j - 1].rgbtBlue + image[i + 1][j].rgbtBlue + image[i + 1][j + 1].rgbtBlue) /
+                                  6.0);
 
                     temp[i][j].rgbtBlue = c;
                     temp[i][j].rgbtGreen = b;
@@ -88,10 +116,15 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if (j == (width - 1))
                 {
-                    int a = round((image[i][j - 1].rgbtRed + image[i][j].rgbtRed + image[i + 1][j - 1].rgbtRed + image[i + 1][j].rgbtRed) / 4.0);
-                    int b = round((image[i][j - 1].rgbtGreen + image[i][j].rgbtGreen + image[i + 1][j - 1].rgbtGreen + image[i + 1][j].rgbtGreen) /
+                    int a = round(
+                        (image[i][j - 1].rgbtRed + image[i][j].rgbtRed + image[i + 1][j - 1].rgbtRed + image[i + 1][j].rgbtRed) /
+                        4.0);
+                    int b = round((image[i][j - 1].rgbtGreen + image[i][j].rgbtGreen + image[i + 1][j - 1].rgbtGreen +
+                                   image[i + 1][j].rgbtGreen) /
                                   4.0);
-                    int c = round((image[i][j - 1].rgbtBlue + image[i][j].rgbtBlue + image[i + 1][j - 1].rgbtBlue + image[i + 1][j].rgbtBlue) / 4.0);
+                    int c = round((image[i][j - 1].rgbtBlue + image[i][j].rgbtBlue + image[i + 1][j - 1].rgbtBlue +
+                                   image[i + 1][j].rgbtBlue) /
+                                  4.0);
 
                     temp[i][j].rgbtBlue = c;
                     temp[i][j].rgbtGreen = b;
@@ -103,12 +136,15 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
             {
                 if (j == 0)
                 {
-                    int a = round((image[i - 1][j].rgbtRed + image[i - 1][j + 1].rgbtRed + image[i][j].rgbtRed + image[i][j + 1].rgbtRed + image[i +
-                                   1][j].rgbtRed + image[i + 1][j + 1].rgbtRed) / 6.0);
-                    int b = round((image[i - 1][j].rgbtGreen + image[i - 1][j + 1].rgbtGreen + image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen +
-                                   image[i + 1][j].rgbtGreen + image[i + 1][j + 1].rgbtGreen) / 6.0);
-                    int c = round((image[i - 1][j].rgbtBlue + image[i - 1][j + 1].rgbtBlue + image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue + image[i +
-                                   1][j].rgbtBlue + image[i + 1][j + 1].rgbtBlue) / 6.0);
+                    int a = round((image[i - 1][j].rgbtRed + image[i - 1][j + 1].rgbtRed + image[i][j].rgbtRed +
+                                   image[i][j + 1].rgbtRed + image[i + 1][j].rgbtRed + image[i + 1][j + 1].rgbtRed) /
+                                  6.0);
+                    int b = round((image[i - 1][j].rgbtGreen + image[i - 1][j + 1].rgbtGreen + image[i][j].rgbtGreen +
+                                   image[i][j + 1].rgbtGreen + image[i + 1][j].rgbtGreen + image[i + 1][j + 1].rgbtGreen) /
+                                  6.0);
+                    int c = round((image[i - 1][j].rgbtBlue + image[i - 1][j + 1].rgbtBlue + image[i][j].rgbtBlue +
+                                   image[i][j + 1].rgbtBlue + image[i + 1][j].rgbtBlue + image[i + 1][j + 1].rgbtBlue) /
+                                  6.0);
 
                     temp[i][j].rgbtBlue = c;
                     temp[i][j].rgbtGreen = b;
@@ -116,15 +152,18 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if ((0 < j) && (j < (width - 1)))
                 {
-                    int a = round((image[i - 1][j - 1].rgbtRed + image[i - 1][j].rgbtRed + image[i - 1][j + 1].rgbtRed + image[i][j - 1].rgbtRed +
-                                   image[i][j].rgbtRed + image[i][j + 1].rgbtRed + image[i + 1][j - 1].rgbtRed + image[i + 1][j].rgbtRed + image[i + 1][j +
-                                           1].rgbtRed) / 9.0);
-                    int b = round((image[i - 1][j - 1].rgbtGreen + image[i - 1][j].rgbtGreen + image[i - 1][j + 1].rgbtGreen + image[i][j - 1].rgbtGreen
-                                   + image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen + image[i + 1][j - 1].rgbtGreen + image[i + 1][j].rgbtGreen + image[i + 1][j +
-                                           1].rgbtGreen) / 9.0);
-                    int c = round((image[i - 1][j - 1].rgbtBlue + image[i - 1][j].rgbtBlue + image[i - 1][j + 1].rgbtBlue + image[i][j - 1].rgbtBlue +
-                                   image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue + image[i + 1][j - 1].rgbtBlue + image[i + 1][j].rgbtBlue + image[i + 1][j +
-                                           1].rgbtBlue) / 9.0);
+                    int a = round((image[i - 1][j - 1].rgbtRed + image[i - 1][j].rgbtRed + image[i - 1][j + 1].rgbtRed +
+                                   image[i][j - 1].rgbtRed + image[i][j].rgbtRed + image[i][j + 1].rgbtRed +
+                                   image[i + 1][j - 1].rgbtRed + image[i + 1][j].rgbtRed + image[i + 1][j + 1].rgbtRed) /
+                                  9.0);
+                    int b = round((image[i - 1][j - 1].rgbtGreen + image[i - 1][j].rgbtGreen + image[i - 1][j + 1].rgbtGreen +
+                                   image[i][j - 1].rgbtGreen + image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen +
+                                   image[i + 1][j - 1].rgbtGreen + image[i + 1][j].rgbtGreen + image[i + 1][j + 1].rgbtGreen) /
+                                  9.0);
+                    int c = round((image[i - 1][j - 1].rgbtBlue + image[i - 1][j].rgbtBlue + image[i - 1][j + 1].rgbtBlue +
+                                   image[i][j - 1].rgbtBlue + image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue +
+                                   image[i + 1][j - 1].rgbtBlue + image[i + 1][j].rgbtBlue + image[i + 1][j + 1].rgbtBlue) /
+                                  9.0);
 
                     temp[i][j].rgbtBlue = c;
                     temp[i][j].rgbtGreen = b;
@@ -132,13 +171,15 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if (j == (width - 1))
                 {
-                    int a = round((image[i - 1][j - 1].rgbtRed + image[i - 1][j].rgbtRed + image[i][j - 1].rgbtRed + image[i][j].rgbtRed + image[i +
-                                   1][j - 1].rgbtRed + image[i + 1][j].rgbtRed) / 6.0);
-                    int b = round((image[i - 1][j - 1].rgbtGreen + image[i - 1][j].rgbtGreen + image[i][j - 1].rgbtGreen + image[i][j].rgbtGreen +
-                                   image[i + 1][j - 1].rgbtGreen +
-                                   image[i + 1][j].rgbtGreen) / 6.0);
-                    int c = round((image[i - 1][j - 1].rgbtBlue + image[i - 1][j].rgbtBlue + image[i][j - 1].rgbtBlue + image[i][j].rgbtBlue + image[i +
-                                   1][j - 1].rgbtBlue + image[i + 1][j].rgbtBlue) / 6.0);
+                    int a = round((image[i - 1][j - 1].rgbtRed + image[i - 1][j].rgbtRed + image[i][j - 1].rgbtRed +
+                                   image[i][j].rgbtRed + image[i + 1][j - 1].rgbtRed + image[i + 1][j].rgbtRed) /
+                                  6.0);
+                    int b = round((image[i - 1][j - 1].rgbtGreen + image[i - 1][j].rgbtGreen + image[i][j - 1].rgbtGreen +
+                                   image[i][j].rgbtGreen + image[i + 1][j - 1].rgbtGreen + image[i + 1][j].rgbtGreen) /
+                                  6.0);
+                    int c = round((image[i - 1][j - 1].rgbtBlue + image[i - 1][j].rgbtBlue + image[i][j - 1].rgbtBlue +
+                                   image[i][j].rgbtBlue + image[i + 1][j - 1].rgbtBlue + image[i + 1][j].rgbtBlue) /
+                                  6.0);
 
                     temp[i][j].rgbtBlue = c;
                     temp[i][j].rgbtGreen = b;
@@ -150,10 +191,15 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
             {
                 if (j == 0)
                 {
-                    int a = round((image[i - 1][j].rgbtRed + image[i - 1][j + 1].rgbtRed + image[i][j].rgbtRed + image[i][j + 1].rgbtRed) / 4.0);
-                    int b = round((image[i - 1][j].rgbtGreen + image[i - 1][j + 1].rgbtGreen + image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen) /
+                    int a = round(
+                        (image[i - 1][j].rgbtRed + image[i - 1][j + 1].rgbtRed + image[i][j].rgbtRed + image[i][j + 1].rgbtRed) /
+                        4.0);
+                    int b = round((image[i - 1][j].rgbtGreen + image[i - 1][j + 1].rgbtGreen + image[i][j].rgbtGreen +
+                                   image[i][j + 1].rgbtGreen) /
                                   4.0);
-                    int c = round((image[i - 1][j].rgbtBlue + image[i - 1][j + 1].rgbtBlue + image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue) / 4.0);
+                    int c = round((image[i - 1][j].rgbtBlue + image[i - 1][j + 1].rgbtBlue + image[i][j].rgbtBlue +
+                                   image[i][j + 1].rgbtBlue) /
+                                  4.0);
 
                     temp[i][j].rgbtBlue = c;
                     temp[i][j].rgbtGreen = b;
@@ -161,12 +207,15 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if ((0 < j) && (j < (width - 1)))
                 {
-                    int a = round((image[i - 1][j - 1].rgbtRed + image[i - 1][j].rgbtRed + image[i - 1][j + 1].rgbtRed + image[i][j - 1].rgbtRed +
-                                   image[i][j].rgbtRed + image[i][j + 1].rgbtRed) / 6.0);
-                    int b = round((image[i - 1][j - 1].rgbtGreen + image[i - 1][j].rgbtGreen + image[i - 1][j + 1].rgbtGreen + image[i][j - 1].rgbtGreen
-                                   + image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen) / 6.0);
-                    int c = round((image[i - 1][j - 1].rgbtBlue + image[i - 1][j].rgbtBlue + image[i - 1][j + 1].rgbtBlue + image[i][j - 1].rgbtBlue +
-                                   image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue) / 6.0);
+                    int a = round((image[i - 1][j - 1].rgbtRed + image[i - 1][j].rgbtRed + image[i - 1][j + 1].rgbtRed +
+                                   image[i][j - 1].rgbtRed + image[i][j].rgbtRed + image[i][j + 1].rgbtRed) /
+                                  6.0);
+                    int b = round((image[i - 1][j - 1].rgbtGreen + image[i - 1][j].rgbtGreen + image[i - 1][j + 1].rgbtGreen +
+                                   image[i][j - 1].rgbtGreen + image[i][j].rgbtGreen + image[i][j + 1].rgbtGreen) /
+                                  6.0);
+                    int c = round((image[i - 1][j - 1].rgbtBlue + image[i - 1][j].rgbtBlue + image[i - 1][j + 1].rgbtBlue +
+                                   image[i][j - 1].rgbtBlue + image[i][j].rgbtBlue + image[i][j + 1].rgbtBlue) /
+                                  6.0);
 
                     temp[i][j].rgbtBlue = c;
                     temp[i][j].rgbtGreen = b;
@@ -174,10 +223,15 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if (j == (width - 1))
                 {
-                    int a = round((image[i - 1][j - 1].rgbtRed + image[i - 1][j].rgbtRed + image[i][j - 1].rgbtRed + image[i][j].rgbtRed) / 4.0);
-                    int b = round((image[i - 1][j - 1].rgbtGreen + image[i - 1][j].rgbtGreen + image[i][j - 1].rgbtGreen + image[i][j].rgbtGreen) /
+                    int a = round(
+                        (image[i - 1][j - 1].rgbtRed + image[i - 1][j].rgbtRed + image[i][j - 1].rgbtRed + image[i][j].rgbtRed) /
+                        4.0);
+                    int b = round((image[i - 1][j - 1].rgbtGreen + image[i - 1][j].rgbtGreen + image[i][j - 1].rgbtGreen +
+                                   image[i][j].rgbtGreen) /
                                   4.0);
-                    int c = round((image[i - 1][j - 1].rgbtBlue + image[i - 1][j].rgbtBlue + image[i][j - 1].rgbtBlue + image[i][j].rgbtBlue) / 4.0);
+                    int c = round((image[i - 1][j - 1].rgbtBlue + image[i - 1][j].rgbtBlue + image[i][j - 1].rgbtBlue +
+                                   image[i][j].rgbtBlue) /
+                                  4.0);
 
                     temp[i][j].rgbtBlue = c;
                     temp[i][j].rgbtGreen = b;
@@ -194,22 +248,30 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
             image[i][j] = temp[i][j];
         }
     }
-    return;
+
+    free(temp);
 }
 
 // Detect edges
+
 void edges(int height, int width, RGBTRIPLE image[height][width])
 {
-    RGBTRIPLE temp[height][width];
+    RGBTRIPLE(*temp)[width] = calloc(height, width * sizeof(RGBTRIPLE));
+    if (temp == NULL)
+    {
+        exit(1);
+    }
 
     for (int i = 0; i < height; i++)
     {
         for (int j = 0; j < width; j++)
         {
-            // In artificial intelligence algorithms for image processing, it is often useful to detect edges in an image: lines in the image that create a boundary between one object and another.
-            // One way to achieve this effect is by applying the Sobel operator to the image.
-            // Like image blurring, edge detection also works by taking each pixel, and modifying it based on the 3x3 grid of pixels that surrounds that pixel.
-            // But instead of just taking the average of the nine pixels, the Sobel operator computes the new value of each pixel by taking a weighted sum of the values for the surrounding pixels.
+            // In artificial intelligence algorithms for image processing, it is often useful to detect edges in an image: lines in
+            // the image that create a boundary between one object and another. One way to achieve this effect is by applying the
+            // Sobel operator to the image. Like image blurring, edge detection also works by taking each pixel, and modifying it
+            // based on the 3x3 grid of pixels that surrounds that pixel. But instead of just taking the average of the nine pixels,
+            // the Sobel operator computes the new value of each pixel by taking a weighted sum of the values for the surrounding
+            // pixels.
             if (i == 0)
             {
                 if (j == 0)
@@ -247,16 +309,20 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     int a = (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2) +
                             (image[i + 1][j - 1].rgbtRed * -1) + (image[i + 1][j].rgbtRed * 0) + (image[i + 1][j + 1].rgbtRed * 1);
                     int b = (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 2) +
-                            (image[i + 1][j - 1].rgbtGreen * -1) + (image[i + 1][j].rgbtGreen * 0) + (image[i + 1][j + 1].rgbtGreen * 1);
+                            (image[i + 1][j - 1].rgbtGreen * -1) + (image[i + 1][j].rgbtGreen * 0) +
+                            (image[i + 1][j + 1].rgbtGreen * 1);
                     int c = (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 2) +
-                            (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0) + (image[i + 1][j + 1].rgbtBlue * 1);
+                            (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0) +
+                            (image[i + 1][j + 1].rgbtBlue * 1);
                     // Gy
                     int d = (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 0) +
                             (image[i + 1][j - 1].rgbtRed * 1) + (image[i + 1][j].rgbtRed * 2) + (image[i + 1][j + 1].rgbtRed * 1);
                     int e = (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 0) +
-                            (image[i + 1][j - 1].rgbtGreen * 1) + (image[i + 1][j].rgbtGreen * 2) + (image[i + 1][j + 1].rgbtGreen * 1);
+                            (image[i + 1][j - 1].rgbtGreen * 1) + (image[i + 1][j].rgbtGreen * 2) +
+                            (image[i + 1][j + 1].rgbtGreen * 1);
                     int f = (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 0) +
-                            (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2) + (image[i + 1][j + 1].rgbtBlue * 1);
+                            (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2) +
+                            (image[i + 1][j + 1].rgbtBlue * 1);
                     // Gx^2
                     int Gxred = a * a;
                     int Gxgreen = b * b;
@@ -335,27 +401,29 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                 {
                     // Gx
                     int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) +
-                            (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2) + (image[i + 1][j - 1].rgbtRed * -1) +
-                            (image[i + 1][j].rgbtRed * 0) + (image[i + 1][j + 1].rgbtRed * 1);
-                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) + (image[i - 1][j + 1].rgbtGreen * 1) +
-                            (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 2) +
-                            (image[i + 1][j - 1].rgbtGreen * -1) +
+                            (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2) +
+                            (image[i + 1][j - 1].rgbtRed * -1) + (image[i + 1][j].rgbtRed * 0) + (image[i + 1][j + 1].rgbtRed * 1);
+                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
+                            (image[i - 1][j + 1].rgbtGreen * 1) + (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) +
+                            (image[i][j + 1].rgbtGreen * 2) + (image[i + 1][j - 1].rgbtGreen * -1) +
                             (image[i + 1][j].rgbtGreen * 0) + (image[i + 1][j + 1].rgbtGreen * 1);
-                    int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) + (image[i - 1][j + 1].rgbtBlue * 1) +
-                            (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 2) +
-                            (image[i + 1][j - 1].rgbtBlue * -1) +
-                            (image[i + 1][j].rgbtBlue * 0) + (image[i + 1][j + 1].rgbtBlue * 1);
+                    int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) +
+                            (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) +
+                            (image[i][j + 1].rgbtBlue * 2) + (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0) +
+                            (image[i + 1][j + 1].rgbtBlue * 1);
                     // Gy
-                    int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) + (image[i - 1][j + 1].rgbtRed * -1) +
-                            (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * 1) +
-                            (image[i + 1][j].rgbtRed * 2) + (image[i + 1][j + 1].rgbtRed * 1);
-                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) + (image[i - 1][j + 1].rgbtGreen * -1) +
-                            (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 0) +
-                            (image[i + 1][j - 1].rgbtGreen * 1) +
+                    int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) +
+                            (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) +
+                            (image[i][j + 1].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * 1) + (image[i + 1][j].rgbtRed * 2) +
+                            (image[i + 1][j + 1].rgbtRed * 1);
+                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
+                            (image[i - 1][j + 1].rgbtGreen * -1) + (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) +
+                            (image[i][j + 1].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * 1) +
                             (image[i + 1][j].rgbtGreen * 2) + (image[i + 1][j + 1].rgbtGreen * 1);
-                    int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) + (image[i - 1][j + 1].rgbtBlue * -1) +
-                            (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * 1) +
-                            (image[i + 1][j].rgbtBlue * 2) + (image[i + 1][j + 1].rgbtBlue * 1);
+                    int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) +
+                            (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) +
+                            (image[i][j + 1].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2) +
+                            (image[i + 1][j + 1].rgbtBlue * 1);
                     // Gx^2
                     int Gxred = a * a;
                     int Gxgreen = b * b;
@@ -374,15 +442,17 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     // Gx
                     int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i][j - 1].rgbtRed * -2) +
                             (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * -1) + (image[i + 1][j].rgbtRed * 0);
-                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) + (image[i][j - 1].rgbtGreen * -2) +
-                            (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * -1) + (image[i + 1][j].rgbtGreen * 0);
+                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
+                            (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * -1) +
+                            (image[i + 1][j].rgbtGreen * 0);
                     int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) + (image[i][j - 1].rgbtBlue * -2) +
                             (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0);
                     // Gy
                     int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) + (image[i][j - 1].rgbtRed * 0) +
                             (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * 1) + (image[i + 1][j].rgbtRed * 2);
-                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) + (image[i][j - 1].rgbtGreen * 0) +
-                            (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * 1) + (image[i + 1][j].rgbtGreen * 2);
+                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
+                            (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * 1) +
+                            (image[i + 1][j].rgbtGreen * 2);
                     int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) + (image[i][j - 1].rgbtBlue * 0) +
                             (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2);
                     // Gx^2
@@ -435,17 +505,22 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     // Gx
                     int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) +
                             (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2);
-                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) + (image[i - 1][j + 1].rgbtGreen * 1) +
-                            (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 2);
-                    int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) + (image[i - 1][j + 1].rgbtBlue * 1) +
-                            (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 2);
+                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
+                            (image[i - 1][j + 1].rgbtGreen * 1) + (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) +
+                            (image[i][j + 1].rgbtGreen * 2);
+                    int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) +
+                            (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) +
+                            (image[i][j + 1].rgbtBlue * 2);
                     // Gy
-                    int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) + (image[i - 1][j + 1].rgbtRed * -1) +
-                            (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 0);
-                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) + (image[i - 1][j + 1].rgbtGreen * -1) +
-                            (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 0);
-                    int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) + (image[i - 1][j + 1].rgbtBlue * -1) +
-                            (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 0);
+                    int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) +
+                            (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) +
+                            (image[i][j + 1].rgbtRed * 0);
+                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
+                            (image[i - 1][j + 1].rgbtGreen * -1) + (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) +
+                            (image[i][j + 1].rgbtGreen * 0);
+                    int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) +
+                            (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) +
+                            (image[i][j + 1].rgbtBlue * 0);
                     // Gx^2
                     int Gxred = a * a;
                     int Gxgreen = b * b;
@@ -464,15 +539,15 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     // Gx
                     int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i][j - 1].rgbtRed * -2) +
                             (image[i][j].rgbtRed * 0);
-                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) + (image[i][j - 1].rgbtGreen * -2) +
-                            (image[i][j].rgbtGreen * 0);
+                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
+                            (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0);
                     int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) + (image[i][j - 1].rgbtBlue * -2) +
                             (image[i][j].rgbtBlue * 0);
                     // Gy
                     int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) + (image[i][j - 1].rgbtRed * 0) +
                             (image[i][j].rgbtRed * 0);
-                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) + (image[i][j - 1].rgbtGreen * 0) +
-                            (image[i][j].rgbtGreen * 0);
+                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
+                            (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0);
                     int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) + (image[i][j - 1].rgbtBlue * 0) +
                             (image[i][j].rgbtBlue * 0);
                     // Gx^2
@@ -498,5 +573,5 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
             image[i][j] = temp[i][j];
         }
     }
-    return;
+    free(temp);
 }
