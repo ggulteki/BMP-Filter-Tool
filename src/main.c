@@ -2,16 +2,16 @@
 
 int main(int argc, char *argv[])
 {
-    char *filters = "begr";
+    char *flags = "begr";
 
-    char filter = getopt(argc, argv, filters);
-    if (filter == '?')
+    char flag = getopt(argc, argv, flags);
+    if (flag == '?')
     {
         printf("Invalid filter.\n");
         return 1;
     }
 
-    if (getopt(argc, argv, filters) != -1)
+    if (getopt(argc, argv, flags) != -1)
     {
         printf("Only one filter allowed.\n");
         return 2;
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
         fseek(inptr, padding, SEEK_CUR);
     }
 
-    switch (filter)
+    switch (flag)
     {
         case 'b':
             blur(height, width, image);

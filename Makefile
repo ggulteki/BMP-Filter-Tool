@@ -1,4 +1,8 @@
-CC = clang
+# Makefile for bmp-filter-tool
+# Author: Gokberk Gultekin
+# Date: March 16, 2024
+
+CC = gcc
 CFLAGS = -ggdb3 -gdwarf-4 -O0 -std=c11 -Wall -Werror -Wextra -Wno-gnu-folding-constant -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow
 LDFLAGS = -lm
 NAME = bmpfilter

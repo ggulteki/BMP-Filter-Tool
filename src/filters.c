@@ -5,7 +5,7 @@
  * Description: This is the implementation of a program that applies filters to BMP.
  */
 
-#include "./include/filters.h"
+#include "filters.h"
 
 /*
  * To convert a pixel to grayscale, we ensure that the red, green, and blue values 
