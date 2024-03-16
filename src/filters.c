@@ -1,22 +1,22 @@
-/*  .------------------------------------.  */
-/*  |                   _ _       _    _ |  */
-/*  |  __ _  __ _ _   _| | |_ ___| | _(_)|  */
-/*  | / _` |/ _` | | | | | __/ _ \ |/ / ||  */
-/*  || (_| | (_| | |_| | | ||  __/   <| ||  */
-/*  | \__, |\__, |\__,_|_|\__\___|_|\_\_||  */
-/*  | |___/ |___/                        |  */
-/*  '------------------------------------'  */
+/*
+ * Filename: filters.c
+ * Author: Gokberk Gultekin
+ * Date: March 16, 2024
+ * Description: This is the implementation of a program that applies filters to BMP.
+ */
 
-#include "filters.h"
-// Convert image to grayscale
+#include "./include/filters.h"
 
+/*
+ * To convert a pixel to grayscale, we ensure that the red, green, and blue values 
+ * are all set to the same value.
+ */
 void grayscale(int height, int width, RGBTRIPLE image[height][width])
 {
     for (int i = 0; i < height; i++)
     {
         for (int j = 0; j < width; j++)
         {
-            // So to convert a pixel to grayscale, we just need to make sure the red, green, and blue values are all the same value.
             int a = round((image[i][j].rgbtRed + image[i][j].rgbtGreen + image[i][j].rgbtBlue) / 3.0);
 
             image[i][j].rgbtBlue = a;
@@ -27,7 +27,6 @@ void grayscale(int height, int width, RGBTRIPLE image[height][width])
 }
 
 // Reflect image horizontally
-
 void reflect(int height, int width, RGBTRIPLE image[height][width])
 {
     RGBTRIPLE(*temp)[width] = calloc(height, width * sizeof(RGBTRIPLE));
@@ -42,7 +41,6 @@ void reflect(int height, int width, RGBTRIPLE image[height][width])
         {
             for (int j = 0; j < width / 2; j++)
             {
-                // Copy the image data to temp
                 temp[i][j] = image[i][j];
                 image[i][j] = image[i][width - 1 - j];
                 image[i][width - 1 - j] = temp[i][j];
@@ -52,7 +50,6 @@ void reflect(int height, int width, RGBTRIPLE image[height][width])
         {
             for (int j = 0; j < width / 2; j++)
             {
-                // Copy the image data to temp
                 temp[i][j] = image[i][j];
                 image[i][j] = image[i][width - 1 - j];
                 image[i][width - 1 - j] = temp[i][j];
@@ -63,8 +60,11 @@ void reflect(int height, int width, RGBTRIPLE image[height][width])
     free(temp);
 }
 
-// Blur image
-
+/*
+ * There are a number of ways to create the effect of blurring or softening an image.
+ * For this problem, we’ll use the “box blur,” which works by taking each pixel and, for each color value, giving it a
+ * new value by averaging the color values of neighboring pixels.
+ */
 void blur(int height, int width, RGBTRIPLE image[height][width])
 {
     RGBTRIPLE(*temp)[width] = calloc(height, width * sizeof(RGBTRIPLE));
@@ -77,9 +77,6 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
     {
         for (int j = 0; j < width; j++)
         {
-            // There are a number of ways to create the effect of blurring or softening an image.
-            // For this problem, we’ll use the “box blur,” which works by taking each pixel and, for each color value, giving it a
-            // new value by averaging the color values of neighboring pixels.
             if (i == 0)
             {
                 if (j == 0)
@@ -252,8 +249,14 @@ void blur(int height, int width, RGBTRIPLE image[height][width])
     free(temp);
 }
 
-// Detect edges
-
+/*
+ * In artificial intelligence algorithms for image processing, it is often useful to detect edges in an image: lines in
+ * the image that create a boundary between one object and another. One way to achieve this effect is by applying the
+ * Sobel operator to the image. Like image blurring, edge detection also works by taking each pixel, and modifying it
+ * based on the 3x3 grid of pixels that surrounds that pixel. But instead of just taking the average of the nine pixels,
+ * the Sobel operator computes the new value of each pixel by taking a weighted sum of the values for the surrounding
+ * pixels.
+ */
 void edges(int height, int width, RGBTRIPLE image[height][width])
 {
     RGBTRIPLE(*temp)[width] = calloc(height, width * sizeof(RGBTRIPLE));
@@ -266,35 +269,26 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
     {
         for (int j = 0; j < width; j++)
         {
-            // In artificial intelligence algorithms for image processing, it is often useful to detect edges in an image: lines in
-            // the image that create a boundary between one object and another. One way to achieve this effect is by applying the
-            // Sobel operator to the image. Like image blurring, edge detection also works by taking each pixel, and modifying it
-            // based on the 3x3 grid of pixels that surrounds that pixel. But instead of just taking the average of the nine pixels,
-            // the Sobel operator computes the new value of each pixel by taking a weighted sum of the values for the surrounding
-            // pixels.
             if (i == 0)
             {
                 if (j == 0)
                 {
-                    // Gx
                     int a = (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2) + (image[i + 1][j].rgbtRed * 0) +
                             (image[i + 1][j + 1].rgbtRed * 1);
                     int b = (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 2) + (image[i + 1][j].rgbtGreen * 0) +
                             (image[i + 1][j + 1].rgbtGreen * 1);
                     int c = (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 2) + (image[i + 1][j].rgbtBlue * 0) +
                             (image[i + 1][j + 1].rgbtBlue * 1);
-                    // Gy
                     int d = (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 0) + (image[i + 1][j].rgbtRed * 2) +
                             (image[i + 1][j + 1].rgbtRed * 1);
                     int e = (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 0) + (image[i + 1][j].rgbtGreen * 2) +
                             (image[i + 1][j + 1].rgbtGreen * 1);
                     int f = (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 0) + (image[i + 1][j].rgbtBlue * 2) +
                             (image[i + 1][j + 1].rgbtBlue * 1);
-                    // Gx^2
                     int Gxred = a * a;
                     int Gxgreen = b * b;
                     int Gxblue = c * c;
-                    // Gy^2
+
                     int Gyred = d * d;
                     int Gygreen = e * e;
                     int Gyblue = f * f;
@@ -305,7 +299,6 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if ((0 < j) && (j < (width - 1)))
                 {
-                    // Gx
                     int a = (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2) +
                             (image[i + 1][j - 1].rgbtRed * -1) + (image[i + 1][j].rgbtRed * 0) + (image[i + 1][j + 1].rgbtRed * 1);
                     int b = (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 2) +
@@ -314,7 +307,7 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     int c = (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 2) +
                             (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0) +
                             (image[i + 1][j + 1].rgbtBlue * 1);
-                    // Gy
+                    
                     int d = (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 0) +
                             (image[i + 1][j - 1].rgbtRed * 1) + (image[i + 1][j].rgbtRed * 2) + (image[i + 1][j + 1].rgbtRed * 1);
                     int e = (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 0) +
@@ -323,11 +316,11 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     int f = (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 0) +
                             (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2) +
                             (image[i + 1][j + 1].rgbtBlue * 1);
-                    // Gx^2
+                    
                     int Gxred = a * a;
                     int Gxgreen = b * b;
                     int Gxblue = c * c;
-                    // Gy^2
+                    
                     int Gyred = d * d;
                     int Gygreen = e * e;
                     int Gyblue = f * f;
@@ -338,25 +331,24 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if (j == (width - 1))
                 {
-                    // Gx
                     int a = (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * -1) +
                             (image[i + 1][j].rgbtRed * 0);
                     int b = (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * -1) +
                             (image[i + 1][j].rgbtGreen * 0);
                     int c = (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * -1) +
                             (image[i + 1][j].rgbtBlue * 0);
-                    // Gy
+                   
                     int d = (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * 1) +
                             (image[i + 1][j].rgbtRed * 2);
                     int e = (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * 1) +
                             (image[i + 1][j].rgbtGreen * 2);
                     int f = (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * 1) +
                             (image[i + 1][j].rgbtBlue * 2);
-                    // Gx^2
+                    
                     int Gxred = a * a;
                     int Gxgreen = b * b;
                     int Gxblue = c * c;
-                    // Gy^2
+                    
                     int Gyred = d * d;
                     int Gygreen = e * e;
                     int Gyblue = f * f;
@@ -370,25 +362,25 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
             {
                 if (j == 0)
                 {
-                    // Gx
+                    
                     int a = (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) + (image[i][j].rgbtRed * 0) +
                             (image[i][j + 1].rgbtRed * 2) + (image[i + 1][j].rgbtRed * 0) + (image[i + 1][j + 1].rgbtRed * 1);
                     int b = (image[i - 1][j].rgbtGreen * 0) + (image[i - 1][j + 1].rgbtGreen * 1) + (image[i][j].rgbtGreen * 0) +
                             (image[i][j + 1].rgbtGreen * 2) + (image[i + 1][j].rgbtGreen * 0) + (image[i + 1][j + 1].rgbtGreen * 1);
                     int c = (image[i - 1][j].rgbtBlue * 0) + (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j].rgbtBlue * 0) +
                             (image[i][j + 1].rgbtBlue * 2) + (image[i + 1][j].rgbtBlue * 0) + (image[i + 1][j + 1].rgbtBlue * 1);
-                    // Gy
+                    
                     int d = (image[i - 1][j].rgbtRed * -2) + (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j].rgbtRed * 0) +
                             (image[i][j + 1].rgbtRed * 0) + (image[i + 1][j].rgbtRed * 2) + (image[i + 1][j + 1].rgbtRed * 1);
                     int e = (image[i - 1][j].rgbtGreen * -2) + (image[i - 1][j + 1].rgbtGreen * -1) + (image[i][j].rgbtGreen * 0) +
                             (image[i][j + 1].rgbtGreen * 0) + (image[i + 1][j].rgbtGreen * 2) + (image[i + 1][j + 1].rgbtGreen * 1);
                     int f = (image[i - 1][j].rgbtBlue * -2) + (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j].rgbtBlue * 0) +
                             (image[i][j + 1].rgbtBlue * 0) + (image[i + 1][j].rgbtBlue * 2) + (image[i + 1][j + 1].rgbtBlue * 1);
-                    // Gx^2
+                    
                     int Gxred = a * a;
                     int Gxgreen = b * b;
                     int Gxblue = c * c;
-                    // Gy^2
+                    
                     int Gyred = d * d;
                     int Gygreen = e * e;
                     int Gyblue = f * f;
@@ -399,7 +391,6 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if ((0 < j) && (j < (width - 1)))
                 {
-                    // Gx
                     int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) +
                             (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2) +
                             (image[i + 1][j - 1].rgbtRed * -1) + (image[i + 1][j].rgbtRed * 0) + (image[i + 1][j + 1].rgbtRed * 1);
@@ -411,7 +402,7 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                             (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) +
                             (image[i][j + 1].rgbtBlue * 2) + (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0) +
                             (image[i + 1][j + 1].rgbtBlue * 1);
-                    // Gy
+                    
                     int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) +
                             (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) +
                             (image[i][j + 1].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * 1) + (image[i + 1][j].rgbtRed * 2) +
@@ -424,11 +415,11 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                             (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) +
                             (image[i][j + 1].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2) +
                             (image[i + 1][j + 1].rgbtBlue * 1);
-                    // Gx^2
+                    
                     int Gxred = a * a;
                     int Gxgreen = b * b;
                     int Gxblue = c * c;
-                    // Gy^2
+                    
                     int Gyred = d * d;
                     int Gygreen = e * e;
                     int Gyblue = f * f;
@@ -439,7 +430,7 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if (j == (width - 1))
                 {
-                    // Gx
+                    
                     int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i][j - 1].rgbtRed * -2) +
                             (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * -1) + (image[i + 1][j].rgbtRed * 0);
                     int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
@@ -447,7 +438,7 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                             (image[i + 1][j].rgbtGreen * 0);
                     int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) + (image[i][j - 1].rgbtBlue * -2) +
                             (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0);
-                    // Gy
+                    
                     int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) + (image[i][j - 1].rgbtRed * 0) +
                             (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * 1) + (image[i + 1][j].rgbtRed * 2);
                     int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
@@ -455,11 +446,11 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                             (image[i + 1][j].rgbtGreen * 2);
                     int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) + (image[i][j - 1].rgbtBlue * 0) +
                             (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2);
-                    // Gx^2
+                    
                     int Gxred = a * a;
                     int Gxgreen = b * b;
                     int Gxblue = c * c;
-                    // Gy^2
+                    
                     int Gyred = d * d;
                     int Gygreen = e * e;
                     int Gyblue = f * f;
@@ -473,25 +464,25 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
             {
                 if (j == 0)
                 {
-                    // Gx
+                    
                     int a = (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) + (image[i][j].rgbtRed * 0) +
                             (image[i][j + 1].rgbtRed * 2);
                     int b = (image[i - 1][j].rgbtGreen * 0) + (image[i - 1][j + 1].rgbtGreen * 1) + (image[i][j].rgbtGreen * 0) +
                             (image[i][j + 1].rgbtGreen * 2);
                     int c = (image[i - 1][j].rgbtBlue * 0) + (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j].rgbtBlue * 0) +
                             (image[i][j + 1].rgbtBlue * 2);
-                    // Gy
+                    
                     int d = (image[i - 1][j].rgbtRed * -2) + (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j].rgbtRed * 0) +
                             (image[i][j + 1].rgbtRed * 0);
                     int e = (image[i - 1][j].rgbtGreen * -2) + (image[i - 1][j + 1].rgbtGreen * -1) + (image[i][j].rgbtGreen * 0) +
                             (image[i][j + 1].rgbtGreen * 0);
                     int f = (image[i - 1][j].rgbtBlue * -2) + (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j].rgbtBlue * 0) +
                             (image[i][j + 1].rgbtBlue * 0);
-                    // Gx^2
+                   
                     int Gxred = a * a;
                     int Gxgreen = b * b;
                     int Gxblue = c * c;
-                    // Gy^2
+                    
                     int Gyred = d * d;
                     int Gygreen = e * e;
                     int Gyblue = f * f;
@@ -501,8 +492,7 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
                 }
                 if ((0 < j) && (j < (width - 1)))
-                {
-                    // Gx
+                {   
                     int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) +
                             (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2);
                     int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
@@ -511,7 +501,7 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) +
                             (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) +
                             (image[i][j + 1].rgbtBlue * 2);
-                    // Gy
+                    
                     int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) +
                             (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) +
                             (image[i][j + 1].rgbtRed * 0);
@@ -521,11 +511,11 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) +
                             (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) +
                             (image[i][j + 1].rgbtBlue * 0);
-                    // Gx^2
+                    
                     int Gxred = a * a;
                     int Gxgreen = b * b;
                     int Gxblue = c * c;
-                    // Gy^2
+                    
                     int Gyred = d * d;
                     int Gygreen = e * e;
                     int Gyblue = f * f;
@@ -536,25 +526,25 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                 }
                 if (j == (width - 1))
                 {
-                    // Gx
+                    
                     int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i][j - 1].rgbtRed * -2) +
                             (image[i][j].rgbtRed * 0);
                     int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
                             (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0);
                     int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) + (image[i][j - 1].rgbtBlue * -2) +
                             (image[i][j].rgbtBlue * 0);
-                    // Gy
+                    
                     int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) + (image[i][j - 1].rgbtRed * 0) +
                             (image[i][j].rgbtRed * 0);
                     int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
                             (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0);
                     int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) + (image[i][j - 1].rgbtBlue * 0) +
                             (image[i][j].rgbtBlue * 0);
-                    // Gx^2
+                    
                     int Gxred = a * a;
                     int Gxgreen = b * b;
                     int Gxblue = c * c;
-                    // Gy^2
+                    
                     int Gyred = d * d;
                     int Gygreen = e * e;
                     int Gyblue = f * f;
