@@ -1,117 +1,149 @@
+/*
+ * @Author: ggulteki 
+ * @Date: 2024-12-16 14:29:58 
+ * @Last Modified by: ggulteki
+ * @Last Modified time: 2024-12-16 15:02:47
+ */
+
 #include "filters.h"
 
-int main(int argc, char *argv[])
-{
-    char *flags = "begr";
-
-    char flag = getopt(argc, argv, flags);
-    if (flag == '?')
-    {
-        printf("Invalid filter.\n");
+int main(int argc, char *argv[]) {
+    if (argc != 4) {
+        printf("Usage: ./program <flag> <input file> <output file>\n");
         return 1;
     }
 
-    if (getopt(argc, argv, flags) != -1)
-    {
-        printf("Only one filter allowed.\n");
+    const char flag = argv[1][1];
+    const char *infile = argv[2];
+    const char *outfile = argv[3];
+    
+    if (flag != 'b' && flag != 'e' && flag != 'g' && flag != 'r') {
+        printf("Invalid flag\n");
+        return 1;
+    }
+
+    FILE *inptr = fopen(infile, "rb");
+    if (inptr == NULL) {
+        printf("Could not open %s.\n", infile);
+        return 1;
+    }
+
+    FILE *outptr = fopen(outfile, "wb");
+    if (outptr == NULL) {
+        fclose(inptr);
+        printf("Could not create %s.\n", outfile);
         return 2;
     }
 
-    if (argc != optind + 2)
-    {
-        printf("Usage: ./filter [flag] infile outfile\n");
+    BITMAPFILEHEADER bf;
+    if (fread(&bf, sizeof(BITMAPFILEHEADER), 1, inptr) != 1) {
+        fclose(outptr);
+        fclose(inptr);
+        printf("Error reading BMP file header.\n");
+        return 3;
+    }
+    
+    BITMAPINFOHEADER bi;
+    if (fread(&bi, sizeof(BITMAPINFOHEADER), 1, inptr) != 1) {
+        fclose(outptr);
+        fclose(inptr);
+        printf("Error reading BMP info header.\n");
         return 3;
     }
 
-    char *infile = argv[optind];
-    char *outfile = argv[optind + 1];
-
-    FILE *inptr = fopen(infile, "r");
-    if (inptr == NULL)
-    {
-        printf("Could not open %s.\n", infile);
-        return 4;
-    }
-
-    FILE *outptr = fopen(outfile, "w");
-    if (outptr == NULL)
-    {
-        fclose(inptr);
-        printf("Could not create %s.\n", outfile);
-        return 5;
-    }
-
-    BITMAPFILEHEADER bf;
-    fread(&bf, sizeof(BITMAPFILEHEADER), 1, inptr);
-
-    BITMAPINFOHEADER bi;
-    fread(&bi, sizeof(BITMAPINFOHEADER), 1, inptr);
-
-    if (bf.bfType != 0x4d42 || bf.bfOffBits != 54 || bi.biSize != 40 ||
-        bi.biBitCount != 24 || bi.biCompression != 0)
-    {
+    if (bf.bfType != BITMAP_TYPE || bf.bfOffBits != BITMAP_HEADER_SIZE ||
+        bi.biSize != 40 || bi.biBitCount != 24 || bi.biCompression != BITMAP_COMPRESSION) {
         fclose(outptr);
         fclose(inptr);
         printf("Unsupported file format.\n");
-        return 6;
+        return 4;
     }
 
     int height = abs(bi.biHeight);
     int width = bi.biWidth;
 
     RGBTRIPLE(*image)[width] = calloc(height, width * sizeof(RGBTRIPLE));
-    if (image == NULL)
-    {
+    if (image == NULL) {
         printf("Not enough memory to store image.\n");
         fclose(outptr);
         fclose(inptr);
-        return 7;
+        return 5;
     }
 
     int padding = (4 - (width * sizeof(RGBTRIPLE)) % 4) % 4;
 
-    for (int i = 0; i < height; i++)
-    {
-        fread(image[i], sizeof(RGBTRIPLE), width, inptr);
-        fseek(inptr, padding, SEEK_CUR);
+    for (int i = 0; i < height; i++) {
+        if (fread(image[i], sizeof(RGBTRIPLE), width, inptr) != width) {
+            free(image);
+            fclose(outptr);
+            fclose(inptr);
+            printf("Error reading image data.\n");
+            return 6;
+        }
+        
+        if (fseek(inptr, padding, SEEK_CUR) == -1) {
+            free(image);
+            fclose(outptr);
+            fclose(inptr);
+            printf("Error seeking to next row (fseek).\n");
+            return 7;
+        }
     }
-
-    switch (flag)
-    {
+    
+    switch (flag) {
         case 'b':
             blur(height, width, image);
             break;
-
         case 'e':
             edges(height, width, image);
             break;
-
         case 'g':
             grayscale(height, width, image);
             break;
-
         case 'r':
             reflect(height, width, image);
             break;
     }
 
-    fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, outptr);
+    if (fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, outptr) != 1) {
+        free(image);
+        fclose(outptr);
+        fclose(inptr);
+        printf("Error writing BMP file header.\n");
+        return 8;
+    }
+    
+    if (fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, outptr) != 1) {
+        free(image);
+        fclose(outptr);
+        fclose(inptr);
+        printf("Error writing BMP info header.\n");
+        return 9;
+    }
 
-    fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, outptr);
+    for (int i = 0; i < height; i++) {
+        if (fwrite(image[i], sizeof(RGBTRIPLE), width, outptr) != width) {
+            free(image);
+            fclose(outptr);
+            fclose(inptr);
+            printf("Error writing image data (fwrite).\n");
+            return 10;
+        }
 
-    for (int i = 0; i < height; i++)
-    {
-        fwrite(image[i], sizeof(RGBTRIPLE), width, outptr);
-
-        for (int k = 0; k < padding; k++)
-        {
-            fputc(0x00, outptr);
+        for (int k = 0; k < padding; k++) {
+            if (fputc(0x00, outptr) == EOF) {
+                free(image);
+                fclose(outptr);
+                fclose(inptr);
+                printf("Error writing padding byte.\n");
+                return 11;
+            }
         }
     }
 
     free(image);
-
     fclose(inptr);
     fclose(outptr);
+    
     return 0;
 }
