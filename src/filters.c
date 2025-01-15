@@ -1,42 +1,52 @@
 /*
- * Filename: filters.c
+ * filters.c
  * Author: Gokberk Gultekin
  * Date: December 16, 2024
- * Description: The function's implementation for applying filters to BMP.
+ * Implementation of the functions to apply filters to BMP files.
  */
 
 #include "filters.h"
 
-#define AVG_DIVISOR 3.0  // Constant for grayscale average calculation
+/* Constants for image processing */
+#define AVG_DIVISOR 3.0f     /* Floating point divisor for grayscale average calculation */
+#define MAX_RGB_VALUE 255    /* Maximum value for RGB components */
 
 /*
- * Common Parameters for Image Processing Functions:
- * - height: Number of rows in the image.
- * - width: Number of columns in the image.
- * - image: A 2D array of RGBTRIPLE structures representing the image pixels.
+ * Converts an image to grayscale by averaging RGB values.
  *
- * Each function processes the image based on these parameters, modifying
- * the image in-place unless otherwise specified.
- */
-
-/*
- * Converts an image to grayscale by averaging the RGB values of each pixel.
- * Modifies the image in-place.
+ * For each pixel, takes the average of the red, green, and blue values
+ * to determine the grayscale value that is then applied to all three
+ * color channels.
+ *
+ * Parameters:
+ *   height - Number of rows in the image
+ *   width - Number of columns in the image
+ *   image - The 2D array of RGBTRIPLE pixels to be modified
  */
 void grayscale(int height, int width, RGBTRIPLE image[height][width]) {
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-            int a = round((image[i][j].rgbtRed + image[i][j].rgbtGreen + image[i][j].rgbtBlue) / AVG_DIVISOR);
-            image[i][j].rgbtBlue = a;
-            image[i][j].rgbtGreen = a;
-            image[i][j].rgbtRed = a;
+            float avg = (image[i][j].rgbtRed + image[i][j].rgbtGreen + image[i][j].rgbtBlue) / AVG_DIVISOR;
+            uint8_t gray_value = round(avg);
+
+            image[i][j].rgbtBlue = gray_value;
+            image[i][j].rgbtGreen = gray_value;
+            image[i][j].rgbtRed = gray_value;
         }
     }
 }
 
 /*
- * Reflects the image horizontally by swapping pixels along the middle column.
- * Modifies the image in-place.
+ * Reflects the image horizontally.
+ *
+ * Swaps pixels on horizontal axis, from left to right, effectively
+ * creating a mirror image. Only processes up to the middle column
+ * to avoid double-swapping.
+ *
+ * Parameters:
+ *   height - Number of rows in the image
+ *   width - Number of columns in the image
+ *   image - The 2D array of RGBTRIPLE pixels to be modified
  */
 void reflect(int height, int width, RGBTRIPLE image[height][width]) {
     for (int i = 0; i < height; i++) {
@@ -49,366 +59,215 @@ void reflect(int height, int width, RGBTRIPLE image[height][width]) {
 }
 
 /*
- * There are several ways to create the effect of blurring or softening an image.
- * For this problem, we'll use the "box blur," which works by averaging the color values
- * of neighboring pixels and assigning the new average value to each pixel for each color.
+ * Calculates the box blur value for a specific pixel.
+ *
+ * Computes the average RGB values of all neighboring pixels (including the pixel itself)
+ * within a 3x3 grid. Handles edge cases where the grid extends beyond image boundaries.
+ *
+ * Parameters:
+ *   i - Row index of the target pixel
+ *   j - Column index of the target pixel
+ *   height - Image height
+ *   width - Image width
+ *   image - Source image array
+ *
+ * Returns:
+ *   RGBTRIPLE - Blurred pixel value
  */
+static RGBTRIPLE box_blur(int i, int j, int height, int width, RGBTRIPLE image[height][width]) {
+    unsigned int sum_red = 0, sum_green = 0, sum_blue = 0;
+    unsigned int count = 0;
 
-// Helper function to calculate the blurred value for a specific pixel
-RGBTRIPLE calculate_blur(int i, int j, int height, int width, RGBTRIPLE image[height][width]) {
-    int sum_red = 0, sum_green = 0, sum_blue = 0, count = 0;
-    for (int x = -1; x <= 1; x++) {
-        for (int y = -1; y <= 1; y++) {
-            int nx = i + x; // Neighbor row index
-            int ny = j + y; // Neighbor column index
-            // Check bounds to avoid accessing invalid pixels
-            if (nx >= 0 && nx < height && ny >= 0 && ny < width) {
-                sum_red += image[nx][ny].rgbtRed;
-                sum_green += image[nx][ny].rgbtGreen;
-                sum_blue += image[nx][ny].rgbtBlue;
+    // Iterate over 3x3 grid centered on pixel
+    for (int di = -1; di <= 1; di++) {
+        for (int dj = -1; dj <= 1; dj++) {
+            int ni = i + di;  // Neighbor row
+            int nj = j + dj;  // Neighbor column
+
+            // Skip pixels outside image boundaries
+            if (ni >= 0 && ni < height && nj >= 0 && nj < width) {
+                sum_red += image[ni][nj].rgbtRed;
+                sum_green += image[ni][nj].rgbtGreen;
+                sum_blue += image[ni][nj].rgbtBlue;
                 count++;
             }
         }
     }
-    RGBTRIPLE blurred_pixel;
-    blurred_pixel.rgbtRed = round((float)sum_red / (float)count);
-    blurred_pixel.rgbtGreen = round((float)sum_green / (float)count);
-    blurred_pixel.rgbtBlue = round((float)sum_blue / (float)count);
 
-    return blurred_pixel;
+    RGBTRIPLE blurred;
+    blurred.rgbtRed = round((float)sum_red / count);
+    blurred.rgbtGreen = round((float)sum_green / count);
+    blurred.rgbtBlue = round((float)sum_blue / count);
+
+    return blurred;
 }
 
-// Main blur function
+/*
+ * Applies a box blur filter to the entire image.
+ *
+ * Creates a blurred version of the image by replacing each pixel with the average
+ * color values of its neighboring pixels. Uses a temporary buffer to avoid
+ * contaminating the blur calculations with already blurred pixels.
+ *
+ * Parameters:
+ *   height - Number of rows in the image
+ *   width - Number of columns in the image
+ *   image - The 2D array of RGBTRIPLE pixels to be modified
+ */
 void blur(int height, int width, RGBTRIPLE image[height][width]) {
+    // Allocate temporary buffer for blur calculations
     RGBTRIPLE(*temp)[width] = calloc(height, width * sizeof(RGBTRIPLE));
     if (temp == NULL) {
-        fprintf(stderr, "Memory allocation failed for temp.\n");
+        fprintf(stderr, "Memory allocation failed for blur buffer.\n");
         exit(1);
     }
 
+    // Calculate blur for each pixel
     for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            temp[i][j] = calculate_blur(i, j, height, width, image);
-            image[i][j] = temp[i][j];
-        }
+        for (int j = 0; j < width; j++)
+            temp[i][j] = box_blur(i, j, height, width, image);
     }
 
+    // Copy blurred image back to original buffer
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++)
+            image[i][j] = temp[i][j];
+    }
+
+    // Clean up
     free(temp);
     temp = NULL;
 }
 
 /*
- * In artificial intelligence algorithms for image processing, detecting edges in an image is often useful. These edges are
- * lines that create boundaries between objects. One way to achieve this effect is by applying the Sobel operator to the image.
- * Like image blurring, edge detection works by analyzing each pixel and modifying it based on the 3x3 grid of surrounding pixels.
- * However, instead of simply averaging the nine surrounding pixels, the Sobel operator computes the new value of each pixel
- * by taking a weighted sum of the surrounding pixels' values.
+ * Calculates the Sobel operator value for a specific pixel.
+ *
+ * Computes the gradient magnitude using Sobel operators in both x and y directions.
+ *
+ * Parameters:
+ *   i - Row index of the target pixel
+ *   j - Column index of the target pixel
+ *   height - Image height
+ *   width - Image width
+ *   image - Source image array
+ *
+ * Returns:
+ *   RGBTRIPLE - Edge-detected pixel value
  */
-void edges(int height, int width, RGBTRIPLE image[height][width])
-{
+static RGBTRIPLE sobel_calc(int i, int j, int height, int width, RGBTRIPLE image[height][width]) {
+    // Sobel kernels for x and y gradients
+    const int Gx[3][3] = {
+        {-1, 0, 1},
+        {-2, 0, 2},
+        {-1, 0, 1}
+    };
+    const int Gy[3][3] = {
+        {-1, -2, -1},
+        {0, 0, 0},
+        {1, 2, 1}
+    };
+
+    int gx = 0;
+    int gy = 0;
+
+    // Calculate Gx and Gy
+    for (int di = -1; di <= 1; di++) {
+        for (int dj = -1; dj <= 1; dj++) {
+            int ni = i + di;
+            int nj = j + dj;
+
+            // Use 0 for pixels outside the image boundary
+            int pixel_value = 0;
+            if (ni >= 0 && ni < height && nj >= 0 && nj < width) {
+                // Since image is already transformed to luminance, we can use any channel
+                pixel_value = image[ni][nj].rgbtRed;
+            }
+
+            // Add weighted pixel values
+            gx += pixel_value * Gx[di + 1][dj + 1];
+            gy += pixel_value * Gy[di + 1][dj + 1];
+        }
+    }
+
+    // Calculate the magnitude of the gradient
+    int magnitude = round(sqrt((float)(gx * gx + gy * gy)));
+
+    // Cap the value at 255
+    //magnitude = magnitude > 255 ? 255 : magnitude;
+
+    // Create the result pixel (same value for all channels since we're in grayscale)
+    RGBTRIPLE result;
+    result.rgbtRed = result.rgbtGreen = result.rgbtBlue = magnitude;
+
+    return result;
+}
+
+/*
+ * Converts an RGB image to luminance values.
+ *
+ * Transforms RGB values to luminance using standard coefficients:
+ * L = 0.299R + 0.587G + 0.114B
+ *
+ * Parameters:
+ *   height - Number of rows in the image
+ *   width - Number of columns in the image
+ *   image - The 2D array of RGBTRIPLE pixels to be modified
+ */
+void luminance(int height, int width, RGBTRIPLE image[height][width]) {
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            float luminance = 0.299f * image[i][j].rgbtRed +
+                            0.587f * image[i][j].rgbtGreen +
+                            0.114f * image[i][j].rgbtBlue;
+            uint8_t lum_value = round(luminance);
+
+            image[i][j].rgbtRed = lum_value;
+            image[i][j].rgbtGreen = lum_value;
+            image[i][j].rgbtBlue = lum_value;
+        }
+    }
+}
+
+/*
+ * Applies edge detection to the image using the Sobel operator.
+ *
+ * First converts the image to grayscale and luminance, then applies
+ * the Sobel operator to detect edges. Finally applies a blur to
+ * smooth the result.
+ *
+ * Parameters:
+ *   height - Number of rows in the image
+ *   width - Number of columns in the image
+ *   image - The 2D array of RGBTRIPLE pixels to be modified
+ */
+void edges(int height, int width, RGBTRIPLE image[height][width]) {
+    grayscale(height, width, image);
+    luminance(height, width, image);
+    // Allocate temporary buffer for sobel calculation
     RGBTRIPLE(*temp)[width] = calloc(height, width * sizeof(RGBTRIPLE));
-    if (temp == NULL)
-    {
+    if (temp == NULL) {
+        fprintf(stderr, "Memory allocation failed for temp buffer. \n");
         exit(1);
     }
 
-    for (int i = 0; i < height; i++)
-    {
+    // Calculate sobel operator for each pixel
+    for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++)
-        {
-            if (i == 0)
-            {
-                if (j == 0)
-                {
-                    int a = (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2) + (image[i + 1][j].rgbtRed * 0) +
-                            (image[i + 1][j + 1].rgbtRed * 1);
-                    int b = (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 2) + (image[i + 1][j].rgbtGreen * 0) +
-                            (image[i + 1][j + 1].rgbtGreen * 1);
-                    int c = (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 2) + (image[i + 1][j].rgbtBlue * 0) +
-                            (image[i + 1][j + 1].rgbtBlue * 1);
-                    int d = (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 0) + (image[i + 1][j].rgbtRed * 2) +
-                            (image[i + 1][j + 1].rgbtRed * 1);
-                    int e = (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 0) + (image[i + 1][j].rgbtGreen * 2) +
-                            (image[i + 1][j + 1].rgbtGreen * 1);
-                    int f = (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 0) + (image[i + 1][j].rgbtBlue * 2) +
-                            (image[i + 1][j + 1].rgbtBlue * 1);
-                    int Gxred = a * a;
-                    int Gxgreen = b * b;
-                    int Gxblue = c * c;
+            temp[i][j] = sobel_calc(i, j, height, width, image);
+    }
 
-                    int Gyred = d * d;
-                    int Gygreen = e * e;
-                    int Gyblue = f * f;
-
-                    temp[i][j].rgbtBlue = (round(sqrt(Gxblue + Gyblue)) > 255) ? 255 : round(sqrt(Gxblue + Gyblue));
-                    temp[i][j].rgbtGreen = (round(sqrt(Gxgreen + Gygreen)) > 255) ? 255 : round(sqrt(Gxgreen + Gygreen));
-                    temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
-                }
-                if ((0 < j) && (j < (width - 1)))
-                {
-                    int a = (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2) +
-                            (image[i + 1][j - 1].rgbtRed * -1) + (image[i + 1][j].rgbtRed * 0) + (image[i + 1][j + 1].rgbtRed * 1);
-                    int b = (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 2) +
-                            (image[i + 1][j - 1].rgbtGreen * -1) + (image[i + 1][j].rgbtGreen * 0) +
-                            (image[i + 1][j + 1].rgbtGreen * 1);
-                    int c = (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 2) +
-                            (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0) +
-                            (image[i + 1][j + 1].rgbtBlue * 1);
-                    
-                    int d = (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 0) +
-                            (image[i + 1][j - 1].rgbtRed * 1) + (image[i + 1][j].rgbtRed * 2) + (image[i + 1][j + 1].rgbtRed * 1);
-                    int e = (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) + (image[i][j + 1].rgbtGreen * 0) +
-                            (image[i + 1][j - 1].rgbtGreen * 1) + (image[i + 1][j].rgbtGreen * 2) +
-                            (image[i + 1][j + 1].rgbtGreen * 1);
-                    int f = (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) + (image[i][j + 1].rgbtBlue * 0) +
-                            (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2) +
-                            (image[i + 1][j + 1].rgbtBlue * 1);
-                    
-                    int Gxred = a * a;
-                    int Gxgreen = b * b;
-                    int Gxblue = c * c;
-                    
-                    int Gyred = d * d;
-                    int Gygreen = e * e;
-                    int Gyblue = f * f;
-
-                    temp[i][j].rgbtBlue = (round(sqrt(Gxblue + Gyblue)) > 255) ? 255 : round(sqrt(Gxblue + Gyblue));
-                    temp[i][j].rgbtGreen = (round(sqrt(Gxgreen + Gygreen)) > 255) ? 255 : round(sqrt(Gxgreen + Gygreen));
-                    temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
-                }
-                if (j == (width - 1))
-                {
-                    int a = (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * -1) +
-                            (image[i + 1][j].rgbtRed * 0);
-                    int b = (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * -1) +
-                            (image[i + 1][j].rgbtGreen * 0);
-                    int c = (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * -1) +
-                            (image[i + 1][j].rgbtBlue * 0);
-                   
-                    int d = (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * 1) +
-                            (image[i + 1][j].rgbtRed * 2);
-                    int e = (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * 1) +
-                            (image[i + 1][j].rgbtGreen * 2);
-                    int f = (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * 1) +
-                            (image[i + 1][j].rgbtBlue * 2);
-                    
-                    int Gxred = a * a;
-                    int Gxgreen = b * b;
-                    int Gxblue = c * c;
-                    
-                    int Gyred = d * d;
-                    int Gygreen = e * e;
-                    int Gyblue = f * f;
-
-                    temp[i][j].rgbtBlue = (round(sqrt(Gxblue + Gyblue)) > 255) ? 255 : round(sqrt(Gxblue + Gyblue));
-                    temp[i][j].rgbtGreen = (round(sqrt(Gxgreen + Gygreen)) > 255) ? 255 : round(sqrt(Gxgreen + Gygreen));
-                    temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
-                }
-            }
-            if ((0 < i) && (i < (height - 1)))
-            {
-                if (j == 0)
-                {
-                    
-                    int a = (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) + (image[i][j].rgbtRed * 0) +
-                            (image[i][j + 1].rgbtRed * 2) + (image[i + 1][j].rgbtRed * 0) + (image[i + 1][j + 1].rgbtRed * 1);
-                    int b = (image[i - 1][j].rgbtGreen * 0) + (image[i - 1][j + 1].rgbtGreen * 1) + (image[i][j].rgbtGreen * 0) +
-                            (image[i][j + 1].rgbtGreen * 2) + (image[i + 1][j].rgbtGreen * 0) + (image[i + 1][j + 1].rgbtGreen * 1);
-                    int c = (image[i - 1][j].rgbtBlue * 0) + (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j].rgbtBlue * 0) +
-                            (image[i][j + 1].rgbtBlue * 2) + (image[i + 1][j].rgbtBlue * 0) + (image[i + 1][j + 1].rgbtBlue * 1);
-                    
-                    int d = (image[i - 1][j].rgbtRed * -2) + (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j].rgbtRed * 0) +
-                            (image[i][j + 1].rgbtRed * 0) + (image[i + 1][j].rgbtRed * 2) + (image[i + 1][j + 1].rgbtRed * 1);
-                    int e = (image[i - 1][j].rgbtGreen * -2) + (image[i - 1][j + 1].rgbtGreen * -1) + (image[i][j].rgbtGreen * 0) +
-                            (image[i][j + 1].rgbtGreen * 0) + (image[i + 1][j].rgbtGreen * 2) + (image[i + 1][j + 1].rgbtGreen * 1);
-                    int f = (image[i - 1][j].rgbtBlue * -2) + (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j].rgbtBlue * 0) +
-                            (image[i][j + 1].rgbtBlue * 0) + (image[i + 1][j].rgbtBlue * 2) + (image[i + 1][j + 1].rgbtBlue * 1);
-                    
-                    int Gxred = a * a;
-                    int Gxgreen = b * b;
-                    int Gxblue = c * c;
-                    
-                    int Gyred = d * d;
-                    int Gygreen = e * e;
-                    int Gyblue = f * f;
-
-                    temp[i][j].rgbtBlue = (round(sqrt(Gxblue + Gyblue)) > 255) ? 255 : round(sqrt(Gxblue + Gyblue));
-                    temp[i][j].rgbtGreen = (round(sqrt(Gxgreen + Gygreen)) > 255) ? 255 : round(sqrt(Gxgreen + Gygreen));
-                    temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
-                }
-                if ((0 < j) && (j < (width - 1)))
-                {
-                    int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) +
-                            (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2) +
-                            (image[i + 1][j - 1].rgbtRed * -1) + (image[i + 1][j].rgbtRed * 0) + (image[i + 1][j + 1].rgbtRed * 1);
-                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
-                            (image[i - 1][j + 1].rgbtGreen * 1) + (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) +
-                            (image[i][j + 1].rgbtGreen * 2) + (image[i + 1][j - 1].rgbtGreen * -1) +
-                            (image[i + 1][j].rgbtGreen * 0) + (image[i + 1][j + 1].rgbtGreen * 1);
-                    int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) +
-                            (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) +
-                            (image[i][j + 1].rgbtBlue * 2) + (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0) +
-                            (image[i + 1][j + 1].rgbtBlue * 1);
-                    
-                    int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) +
-                            (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) +
-                            (image[i][j + 1].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * 1) + (image[i + 1][j].rgbtRed * 2) +
-                            (image[i + 1][j + 1].rgbtRed * 1);
-                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
-                            (image[i - 1][j + 1].rgbtGreen * -1) + (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) +
-                            (image[i][j + 1].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * 1) +
-                            (image[i + 1][j].rgbtGreen * 2) + (image[i + 1][j + 1].rgbtGreen * 1);
-                    int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) +
-                            (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) +
-                            (image[i][j + 1].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2) +
-                            (image[i + 1][j + 1].rgbtBlue * 1);
-                    
-                    int Gxred = a * a;
-                    int Gxgreen = b * b;
-                    int Gxblue = c * c;
-                    
-                    int Gyred = d * d;
-                    int Gygreen = e * e;
-                    int Gyblue = f * f;
-
-                    temp[i][j].rgbtBlue = (round(sqrt(Gxblue + Gyblue)) > 255) ? 255 : round(sqrt(Gxblue + Gyblue));
-                    temp[i][j].rgbtGreen = (round(sqrt(Gxgreen + Gygreen)) > 255) ? 255 : round(sqrt(Gxgreen + Gygreen));
-                    temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
-                }
-                if (j == (width - 1))
-                {
-                    
-                    int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i][j - 1].rgbtRed * -2) +
-                            (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * -1) + (image[i + 1][j].rgbtRed * 0);
-                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
-                            (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * -1) +
-                            (image[i + 1][j].rgbtGreen * 0);
-                    int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) + (image[i][j - 1].rgbtBlue * -2) +
-                            (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * -1) + (image[i + 1][j].rgbtBlue * 0);
-                    
-                    int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) + (image[i][j - 1].rgbtRed * 0) +
-                            (image[i][j].rgbtRed * 0) + (image[i + 1][j - 1].rgbtRed * 1) + (image[i + 1][j].rgbtRed * 2);
-                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
-                            (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) + (image[i + 1][j - 1].rgbtGreen * 1) +
-                            (image[i + 1][j].rgbtGreen * 2);
-                    int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) + (image[i][j - 1].rgbtBlue * 0) +
-                            (image[i][j].rgbtBlue * 0) + (image[i + 1][j - 1].rgbtBlue * 1) + (image[i + 1][j].rgbtBlue * 2);
-                    
-                    int Gxred = a * a;
-                    int Gxgreen = b * b;
-                    int Gxblue = c * c;
-                    
-                    int Gyred = d * d;
-                    int Gygreen = e * e;
-                    int Gyblue = f * f;
-
-                    temp[i][j].rgbtBlue = (round(sqrt(Gxblue + Gyblue)) > 255) ? 255 : round(sqrt(Gxblue + Gyblue));
-                    temp[i][j].rgbtGreen = (round(sqrt(Gxgreen + Gygreen)) > 255) ? 255 : round(sqrt(Gxgreen + Gygreen));
-                    temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
-                }
-            }
-            if (i == (height - 1))
-            {
-                if (j == 0)
-                {
-                    
-                    int a = (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) + (image[i][j].rgbtRed * 0) +
-                            (image[i][j + 1].rgbtRed * 2);
-                    int b = (image[i - 1][j].rgbtGreen * 0) + (image[i - 1][j + 1].rgbtGreen * 1) + (image[i][j].rgbtGreen * 0) +
-                            (image[i][j + 1].rgbtGreen * 2);
-                    int c = (image[i - 1][j].rgbtBlue * 0) + (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j].rgbtBlue * 0) +
-                            (image[i][j + 1].rgbtBlue * 2);
-                    
-                    int d = (image[i - 1][j].rgbtRed * -2) + (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j].rgbtRed * 0) +
-                            (image[i][j + 1].rgbtRed * 0);
-                    int e = (image[i - 1][j].rgbtGreen * -2) + (image[i - 1][j + 1].rgbtGreen * -1) + (image[i][j].rgbtGreen * 0) +
-                            (image[i][j + 1].rgbtGreen * 0);
-                    int f = (image[i - 1][j].rgbtBlue * -2) + (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j].rgbtBlue * 0) +
-                            (image[i][j + 1].rgbtBlue * 0);
-                   
-                    int Gxred = a * a;
-                    int Gxgreen = b * b;
-                    int Gxblue = c * c;
-                    
-                    int Gyred = d * d;
-                    int Gygreen = e * e;
-                    int Gyblue = f * f;
-
-                    temp[i][j].rgbtBlue = (round(sqrt(Gxblue + Gyblue)) > 255) ? 255 : round(sqrt(Gxblue + Gyblue));
-                    temp[i][j].rgbtGreen = (round(sqrt(Gxgreen + Gygreen)) > 255) ? 255 : round(sqrt(Gxgreen + Gygreen));
-                    temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
-                }
-                if ((0 < j) && (j < (width - 1)))
-                {   
-                    int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i - 1][j + 1].rgbtRed * 1) +
-                            (image[i][j - 1].rgbtRed * -2) + (image[i][j].rgbtRed * 0) + (image[i][j + 1].rgbtRed * 2);
-                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
-                            (image[i - 1][j + 1].rgbtGreen * 1) + (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0) +
-                            (image[i][j + 1].rgbtGreen * 2);
-                    int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) +
-                            (image[i - 1][j + 1].rgbtBlue * 1) + (image[i][j - 1].rgbtBlue * -2) + (image[i][j].rgbtBlue * 0) +
-                            (image[i][j + 1].rgbtBlue * 2);
-                    
-                    int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) +
-                            (image[i - 1][j + 1].rgbtRed * -1) + (image[i][j - 1].rgbtRed * 0) + (image[i][j].rgbtRed * 0) +
-                            (image[i][j + 1].rgbtRed * 0);
-                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
-                            (image[i - 1][j + 1].rgbtGreen * -1) + (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0) +
-                            (image[i][j + 1].rgbtGreen * 0);
-                    int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) +
-                            (image[i - 1][j + 1].rgbtBlue * -1) + (image[i][j - 1].rgbtBlue * 0) + (image[i][j].rgbtBlue * 0) +
-                            (image[i][j + 1].rgbtBlue * 0);
-                    
-                    int Gxred = a * a;
-                    int Gxgreen = b * b;
-                    int Gxblue = c * c;
-                    
-                    int Gyred = d * d;
-                    int Gygreen = e * e;
-                    int Gyblue = f * f;
-
-                    temp[i][j].rgbtBlue = (round(sqrt(Gxblue + Gyblue)) > 255) ? 255 : round(sqrt(Gxblue + Gyblue));
-                    temp[i][j].rgbtGreen = (round(sqrt(Gxgreen + Gygreen)) > 255) ? 255 : round(sqrt(Gxgreen + Gygreen));
-                    temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
-                }
-                if (j == (width - 1))
-                {
-                    
-                    int a = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * 0) + (image[i][j - 1].rgbtRed * -2) +
-                            (image[i][j].rgbtRed * 0);
-                    int b = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * 0) +
-                            (image[i][j - 1].rgbtGreen * -2) + (image[i][j].rgbtGreen * 0);
-                    int c = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * 0) + (image[i][j - 1].rgbtBlue * -2) +
-                            (image[i][j].rgbtBlue * 0);
-                    
-                    int d = (image[i - 1][j - 1].rgbtRed * -1) + (image[i - 1][j].rgbtRed * -2) + (image[i][j - 1].rgbtRed * 0) +
-                            (image[i][j].rgbtRed * 0);
-                    int e = (image[i - 1][j - 1].rgbtGreen * -1) + (image[i - 1][j].rgbtGreen * -2) +
-                            (image[i][j - 1].rgbtGreen * 0) + (image[i][j].rgbtGreen * 0);
-                    int f = (image[i - 1][j - 1].rgbtBlue * -1) + (image[i - 1][j].rgbtBlue * -2) + (image[i][j - 1].rgbtBlue * 0) +
-                            (image[i][j].rgbtBlue * 0);
-                    
-                    int Gxred = a * a;
-                    int Gxgreen = b * b;
-                    int Gxblue = c * c;
-                    
-                    int Gyred = d * d;
-                    int Gygreen = e * e;
-                    int Gyblue = f * f;
-
-                    temp[i][j].rgbtBlue = (round(sqrt(Gxblue + Gyblue)) > 255) ? 255 : round(sqrt(Gxblue + Gyblue));
-                    temp[i][j].rgbtGreen = (round(sqrt(Gxgreen + Gygreen)) > 255) ? 255 : round(sqrt(Gxgreen + Gygreen));
-                    temp[i][j].rgbtRed = (round(sqrt(Gxred + Gyred)) > 255) ? 255 : round(sqrt(Gxred + Gyred));
-                }
-            }
+    // Copy modified image back to original buffer
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (temp[i][j].rgbtRed > image[i][j].rgbtRed)
+                image[i][j].rgbtRed = image[i][j].rgbtGreen = image[i][j].rgbtBlue = 255;
+            else
+                image[i][j].rgbtRed = image[i][j].rgbtGreen = image[i][j].rgbtBlue = 0;
         }
     }
-    for (int i = 0; i < height; i++)
-    {
-        for (int j = 0; j < width; j++)
-        {
-            image[i][j] = temp[i][j];
-        }
-    }
+    blur(height, width, image);
+
+    // Clean up
     free(temp);
+    temp = NULL;
 }
